@@ -19,4 +19,4 @@ includeSourceDocuments()
 <!-- Don't edit the material above this line -->
 
 
-I love this class 
+I love this class very much
