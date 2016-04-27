@@ -50,13 +50,65 @@ Restaurants_Parkingnarrow <- Restaurants_Parking %>%
   gather(key=parking_options, value, -businesses.name, -businesses.stars, -businesses.attributes..Price.Range.) %>%
   filter(value == TRUE)
 
-Restaurants_Parkingspread <- Restaurants_Parking %>%
-  spread(garage, into=c("garage","no_garage"))
-
 Restaurants_Parkingnarrow %>%
   ggplot(aes(y=businesses.stars, x=parking_options)) + 
   geom_boxplot(aes(color=parking_options, fill=parking_options), 
                alpha=.25, outlier.size=1, outlier.colour="gray") +
-                 ylab("Stars") + xlab("Parking_Options")
+                 ylab("Stars") + xlab("Parking_Options") + 
+                 geom_smooth()
+
+Restaurants_Parkingnarrow %>%
+  ggplot(aes(y=businesses.attributes..Price.Range., x=parking_options)) + 
+  geom_boxplot(aes(color=parking_options, fill=parking_options), 
+               alpha=.25, outlier.size=1, outlier.colour="gray") +
+                 ylab("Price") + xlab("Parking_Options")
+
+#Compare how offering or not offering the specific type of parking options (garage, street, lot, valet) impact the business stars and business prices
+
+#Garage 
+Restaurants_Parking %>%
+  ggplot(aes(x=businesses.stars)) + 
+  geom_density(aes(color=garage, fill=garage), alpha=.25) + 
+  xlab("Stars") + ylab( "Density")
+
+Restaurants_Parking %>%
+  ggplot(aes(x=businesses.attributes..Price.Range.)) + 
+  geom_density(aes(color=garage, fill=garage), alpha=.25) + 
+  xlab("Prices") + ylab( "Density")
+
+#Street
+Restaurants_Parking %>%
+  ggplot(aes(x=businesses.stars)) + 
+  geom_density(aes(color=street, fill=street), alpha=.25) + 
+  xlab("Stars") + ylab( "Density")
+
+Restaurants_Parking %>%
+  ggplot(aes(x=businesses.attributes..Price.Range.)) + 
+  geom_density(aes(color=street, fill=street), alpha=.25) + 
+  xlab("Prices") + ylab( "Density")
+
+#lot
+Restaurants_Parking %>%
+  ggplot(aes(x=businesses.stars)) + 
+  geom_density(aes(color=lot, fill=lot), alpha=.25) + 
+  xlab("Stars") + ylab( "Density")
+
+Restaurants_Parking %>%
+  ggplot(aes(x=businesses.attributes..Price.Range.)) + 
+  geom_density(aes(color=lot, fill=lot), alpha=.25) + 
+  xlab("Prices") + ylab( "Density")
+
+#valet
+Restaurants_Parking %>%
+  ggplot(aes(x=businesses.stars)) + 
+  geom_density(aes(color=valet, fill=valet), alpha=.25) + 
+  xlab("Stars") + ylab( "Density")
+
+Restaurants_Parking %>%
+  ggplot(aes(x=businesses.attributes..Price.Range.)) + 
+  geom_density(aes(color=valet, fill=valet), alpha=.25) + 
+  xlab("Prices") + ylab( "Density")
+
 ```
+
 
