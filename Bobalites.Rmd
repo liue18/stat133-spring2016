@@ -1,0 +1,62 @@
+---
+title: "Bobalites Project"
+author: "Roanna Lin"
+date: "April 20, 2016"
+output: html_document
+---
+
+```{r include=FALSE}
+# Don't delete this chunk if you are using the DataComputing package
+library(DataComputing)
+library(httr)
+library(jsonlite)
+```
+*Source file* 
+```{r, results='asis', echo=FALSE}
+includeSourceDocuments()
+```
+
+```{r}
+#Load the files
+##replace dir path with location of files on your computer
+dir <- "/Users/ellieliu/Desktop/Bobalites/"
+businessesmini <- stream_in(file(paste(dir,"businessesmini.json",sep="")))
+businesses <- stream_in(file(paste(dir,"yelp_academic_dataset_business.json",sep="")))
+categories <- businesses$categories
+
+#Make a vector with the unique business id's for all the rows where 'categories' contains 'Restaurants'
+Restaurants <- c()
+for (i in 1:length(categories)) {
+  if (sum(grepl("Restaurants",categories[[i]]) > 0)) {
+    Restaurants <- c(Restaurants,businesses[i,1])
+  }
+}
+
+#Select the rows in the data frame where the row number is in Restaurants
+businessesnarrow <- data.frame(businesses$business_id,businesses$name,businesses$stars,businesses$attributes$"Parking",businesses$attributes$"Wi-Fi",businesses$attributes$"Outdoor Seating",businesses$attributes$"Good For",businesses$attributes$"Accepts Credit Cards",businesses$attributes$"Price Range")
+Restaurants_frame <- businessesnarrow %>%
+  filter(businesses.business_id %in% Restaurants)
+```
+
+```{r}
+#Select columns businesses.name, businesses.stars, businesses.attributes..Price.Range., garage, street, lot and valet
+#Filter the case that offer either garage, street, lot and valet parking
+Restaurants_Parking <- Restaurants_frame %>%
+  select(businesses.name, businesses.stars, businesses.attributes..Price.Range., garage, street, lot, valet) %>%
+  filter(garage == TRUE | street == TRUE | lot == TRUE | valet == TRUE)
+
+#Compare how does offering different type of parking relate to business stars and business prices
+Restaurants_Parkingnarrow <- Restaurants_Parking %>%
+  gather(key=parking_options, value, -businesses.name, -businesses.stars, -businesses.attributes..Price.Range.) %>%
+  filter(value == TRUE)
+
+Restaurants_Parkingspread <- Restaurants_Parking %>%
+  spread(garage, into=c("garage","no_garage"))
+
+Restaurants_Parkingnarrow %>%
+  ggplot(aes(y=businesses.stars, x=parking_options)) + 
+  geom_boxplot(aes(color=parking_options, fill=parking_options), 
+               alpha=.25, outlier.size=1, outlier.colour="gray") +
+                 ylab("Stars") + xlab("Parking_Options")
+```
+
