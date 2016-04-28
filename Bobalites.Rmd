@@ -33,82 +33,115 @@ for (i in 1:length(categories)) {
 }
 
 #Select the rows in the data frame where the row number is in Restaurants
-businessesnarrow <- data.frame(businesses$business_id,businesses$name,businesses$stars,businesses$attributes$"Parking",businesses$attributes$"Wi-Fi",businesses$attributes$"Outdoor Seating",businesses$attributes$"Good For",businesses$attributes$"Accepts Credit Cards",businesses$attributes$"Price Range")
+businessesnarrow <- data.frame(businesses$business_id,businesses$name,businesses$stars,businesses$attributes$"Parking",businesses$attributes$"Wi-Fi",businesses$attributes$"Outdoor Seating",businesses$attributes$"Good For",businesses$attributes$"Accepts Credit Cards",businesses$attributes$"Price Range", businesses$review_count)
 Restaurants_frame <- businessesnarrow %>%
   filter(businesses.business_id %in% Restaurants)
+
+#Remove strange formatting in names
+names(Restaurants_frame) <- c("business_id","name","stars",names(Restaurants_frame)[4:8],"Wi_Fi","Outdoor_Seating",names(Restaurants_frame)[11:16],"Credit_Cards","Price_Range", "Review_Count")
+```
+
+```{r}
+Restaurant_Reviewcount <- Restaurants_frame %>%
+  select(name, stars, Review_Count) 
+
+Restaurant_Reviewcount %>%
+  ggplot(aes(x=stars, y=Review_Count)) + 
+  geom_point(col="blue") +
+  labs(x="Stars", y="Review_Count", title="Stars vs Review_Count")
 ```
 
 ```{r}
 #Select columns businesses.name, businesses.stars, businesses.attributes..Price.Range., garage, street, lot and valet
 #Filter the case that offer either garage, street, lot and valet parking
 Restaurants_Parking <- Restaurants_frame %>%
-  select(businesses.name, businesses.stars, businesses.attributes..Price.Range., garage, street, lot, valet) %>%
+  select(name, stars, Price_Range, garage, street, lot, valet) %>%
   filter(garage == TRUE | street == TRUE | lot == TRUE | valet == TRUE)
 
 #Compare how does offering different type of parking relate to business stars and business prices
 Restaurants_Parkingnarrow <- Restaurants_Parking %>%
-  gather(key=parking_options, value, -businesses.name, -businesses.stars, -businesses.attributes..Price.Range.) %>%
+  gather(key=parking_options, value, garage, street, lot, valet) %>%
   filter(value == TRUE)
 
 Restaurants_Parkingnarrow %>%
-  ggplot(aes(y=businesses.stars, x=parking_options)) + 
+  ggplot(aes(y=stars, x=parking_options)) + 
   geom_boxplot(aes(color=parking_options, fill=parking_options), 
                alpha=.25, outlier.size=1, outlier.colour="gray") +
-                 ylab("Stars") + xlab("Parking_Options") + 
-                 geom_smooth()
+  labs(x="Parking_Options", y="Stars", title="Stars vs Parking_Options")
+                 
+    
+# the avg stars for restaurants that offer street parking is 4, which means people prefers street parking
 
 Restaurants_Parkingnarrow %>%
-  ggplot(aes(y=businesses.attributes..Price.Range., x=parking_options)) + 
+  ggplot(aes(y=Price_Range, x=parking_options)) + 
   geom_boxplot(aes(color=parking_options, fill=parking_options), 
                alpha=.25, outlier.size=1, outlier.colour="gray") +
-                 ylab("Price") + xlab("Parking_Options")
+  labs(x="Parking_Options", y="Price", title="Price_Range vs Parking_Options")
+                
+
+#the avg price of different parking options are both 2, but valet usually offers to high-end restaurant, while lot and street parking offers to cheaper restaurants. 
 
 #Compare how offering or not offering the specific type of parking options (garage, street, lot, valet) impact the business stars and business prices
 
 #Garage 
 Restaurants_Parking %>%
-  ggplot(aes(x=businesses.stars)) + 
+  ggplot(aes(x=stars)) + 
   geom_density(aes(color=garage, fill=garage), alpha=.25) + 
-  xlab("Stars") + ylab( "Density")
+  labs(x="Stars", y="Density", title="Stars vs Garage_Parking")
+
 
 Restaurants_Parking %>%
-  ggplot(aes(x=businesses.attributes..Price.Range.)) + 
+  ggplot(aes(x=Price_Range)) + 
   geom_density(aes(color=garage, fill=garage), alpha=.25) + 
-  xlab("Prices") + ylab( "Density")
+  xlab("Prices") + ylab( "Density") + title("Price_Range vs Garage_Parking")
+
+#the restaurants that offer garage parking are towards cheaper restaurants?
 
 #Street
 Restaurants_Parking %>%
-  ggplot(aes(x=businesses.stars)) + 
+  ggplot(aes(x=stars)) + 
   geom_density(aes(color=street, fill=street), alpha=.25) + 
-  xlab("Stars") + ylab( "Density")
+  labs(x="Stars", y="Density", title="Stars vs Street_Parking")
+  
+#same conclusion as the first graph
 
 Restaurants_Parking %>%
-  ggplot(aes(x=businesses.attributes..Price.Range.)) + 
+  ggplot(aes(x=Price_Range)) + 
   geom_density(aes(color=street, fill=street), alpha=.25) + 
-  xlab("Prices") + ylab( "Density")
+  labs(x="Prices", y="Density", title="Price_Range vs Street_Parking")
+
 
 #lot
 Restaurants_Parking %>%
-  ggplot(aes(x=businesses.stars)) + 
+  ggplot(aes(x=stars)) + 
   geom_density(aes(color=lot, fill=lot), alpha=.25) + 
-  xlab("Stars") + ylab( "Density")
+  labs(x="Stars", y="Density", title="Stars vs Lot_Parking")
+
+
+# many restaurants that earn better reviews do not offer lot parking 
 
 Restaurants_Parking %>%
-  ggplot(aes(x=businesses.attributes..Price.Range.)) + 
+  ggplot(aes(x=Price_Range)) + 
   geom_density(aes(color=lot, fill=lot), alpha=.25) + 
-  xlab("Prices") + ylab( "Density")
+  labs(x="Prices", y="Density", title="Price_Range vs Lot_Parking")
+
+
+# the restaurant that offer lot parking are usually in price range $ and $$
 
 #valet
 Restaurants_Parking %>%
-  ggplot(aes(x=businesses.stars)) + 
+  ggplot(aes(x=stars)) + 
   geom_density(aes(color=valet, fill=valet), alpha=.25) + 
-  xlab("Stars") + ylab( "Density")
+  labs(x="Stars", y="Density", title="Stars vs Valet_Parking")
+
+# not significantly influenced by valet parking option
 
 Restaurants_Parking %>%
-  ggplot(aes(x=businesses.attributes..Price.Range.)) + 
+  ggplot(aes(x=Price_Range)) + 
   geom_density(aes(color=valet, fill=valet), alpha=.25) + 
-  xlab("Prices") + ylab( "Density")
+  labs(x="Prices", y="Density", title="Price_Range vs Valet_Parking")
+  
 
+#restaurants in price range $ or $$ usually not offer valet parking 
 ```
-
 
