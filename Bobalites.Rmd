@@ -1,6 +1,6 @@
 ---
 title: "Bobalites Project"
-author: "Roanna Lin"
+author: "Ellie Liu"
 date: "April 20, 2016"
 output: html_document
 ---
@@ -10,6 +10,8 @@ output: html_document
 library(DataComputing)
 library(httr)
 library(jsonlite)
+install.packages("corrplot")
+library(corrplot)
 ```
 *Source file* 
 ```{r, results='asis', echo=FALSE}
@@ -33,115 +35,169 @@ for (i in 1:length(categories)) {
 }
 
 #Select the rows in the data frame where the row number is in Restaurants
-businessesnarrow <- data.frame(businesses$business_id,businesses$name,businesses$stars,businesses$attributes$"Parking",businesses$attributes$"Wi-Fi",businesses$attributes$"Outdoor Seating",businesses$attributes$"Good For",businesses$attributes$"Accepts Credit Cards",businesses$attributes$"Price Range", businesses$review_count)
+businessesnarrow <- data.frame(businesses$business_id,businesses$name,businesses$stars,businesses$attributes$"Parking",businesses$attributes$"Wi-Fi",businesses$attributes$"Outdoor Seating",businesses$attributes$"Good For",businesses$attributes$"Accepts Credit Cards",businesses$attributes$"Price Range")
 Restaurants_frame <- businessesnarrow %>%
-  filter(businesses.business_id %in% Restaurants)
+  filter(businesses.business_id %in% Restaurants) 
 
 #Remove strange formatting in names
-names(Restaurants_frame) <- c("business_id","name","stars",names(Restaurants_frame)[4:8],"Wi_Fi","Outdoor_Seating",names(Restaurants_frame)[11:16],"Credit_Cards","Price_Range", "Review_Count")
+names(Restaurants_frame) <- c("business_id","name","stars",names(Restaurants_frame)[4:8],"Wi_Fi","Outdoor_Seating",names(Restaurants_frame)[11:16],"Credit_Cards","Price_Range")
+
+# change Price_Range from 1,2,3,4 to $,$$,$$$,$$$$
+Restaurants_frame = na.omit(Restaurants_frame)
+
+
 ```
 
-```{r}
-Restaurant_Reviewcount <- Restaurants_frame %>%
-  select(name, stars, Review_Count) 
-
-Restaurant_Reviewcount %>%
-  ggplot(aes(x=stars, y=Review_Count)) + 
-  geom_point(col="blue") +
-  labs(x="Stars", y="Review_Count", title="Stars vs Review_Count")
-```
 
 ```{r}
-#Select columns businesses.name, businesses.stars, businesses.attributes..Price.Range., garage, street, lot and valet
+#Select columns name, stars, Price_Range, garage, street, lot and valet
 #Filter the case that offer either garage, street, lot and valet parking
 Restaurants_Parking <- Restaurants_frame %>%
   select(name, stars, Price_Range, garage, street, lot, valet) %>%
   filter(garage == TRUE | street == TRUE | lot == TRUE | valet == TRUE)
 
-#Compare how does offering different type of parking relate to business stars and business prices
+#Compare how does offering different type of parking relate to business stars.
 Restaurants_Parkingnarrow <- Restaurants_Parking %>%
   gather(key=parking_options, value, garage, street, lot, valet) %>%
   filter(value == TRUE)
 
+# Impact on stars
 Restaurants_Parkingnarrow %>%
   ggplot(aes(y=stars, x=parking_options)) + 
   geom_boxplot(aes(color=parking_options, fill=parking_options), 
                alpha=.25, outlier.size=1, outlier.colour="gray") +
   labs(x="Parking_Options", y="Stars", title="Stars vs Parking_Options")
                  
-    
-# the avg stars for restaurants that offer street parking is 4, which means people prefers street parking
+# From the boxplot, 
+# The median of stars for garage, lot and valet parking are all 3.5, while that of street parking is 4. It means that in general, the restaruants that offer street parking will receive higher stars. 
+# The interquatile range for street and valet parking is 3.5-4 stars, while that for garage and lot parking are from 3-4 stars. It shows that the middle 50% of customers give restarants with street and valet parkings relatively higher stars.
+# The range of stars for street and valet parkings are from 3 to 4.5, while that for garage and lot parking spreads from 1.5 to 5. The boxplot datas indicate that while garage and lot parking receive a wider range of stars, from low 1.5 stars to the highest 5 stars, street and valet parking on average receive better stars that containes only in the median to high star range from 3 to 4.5.
+```
 
-Restaurants_Parkingnarrow %>%
-  ggplot(aes(y=Price_Range, x=parking_options)) + 
-  geom_boxplot(aes(color=parking_options, fill=parking_options), 
-               alpha=.25, outlier.size=1, outlier.colour="gray") +
-  labs(x="Parking_Options", y="Price", title="Price_Range vs Parking_Options")
-                
-
-#the avg price of different parking options are both 2, but valet usually offers to high-end restaurant, while lot and street parking offers to cheaper restaurants. 
-
-#Compare how offering or not offering the specific type of parking options (garage, street, lot, valet) impact the business stars and business prices
-
-#Garage 
+```{r}
+#Garage Parking
 Restaurants_Parking %>%
   ggplot(aes(x=stars)) + 
-  geom_density(aes(color=garage, fill=garage), alpha=.25) + 
-  labs(x="Stars", y="Density", title="Stars vs Garage_Parking")
+  geom_histogram(aes(fill=garage), binwidth = 1, position = "dodge") + 
+  labs(x="Stars", y="Count", title="Stars of Garage_Parking")
 
+#linear regression: estimate p-value(significant level) and estimated coefficient
+fit1 <- lm(Restaurants_frame$stars~Restaurants_frame$garage)
+summary(fit1)
 
-Restaurants_Parking %>%
-  ggplot(aes(x=Price_Range)) + 
-  geom_density(aes(color=garage, fill=garage), alpha=.25) + 
-  xlab("Prices") + ylab( "Density") + title("Price_Range vs Garage_Parking")
+# From the summary of regression line:
+# The stars are shorthand for significance levels, with the number of asterisks displayed according to the p-value computed. *** for high significance and * for low significance. In this case, *** indicates that it's unlikely that no relationship exists between stars and the fact that restaurants offering garage parking.
+# The estimated coefficient is the value of slope calculated by the regression. In this case, the estimate coefficient is -0.069927. It's absolute value is very close to zero, but it might because of the relatively large sample size, since in a larger sample a smaller coefficient may be significant. And the negative sign indicates that offering a garage parking has a negative impact on the stars. This trend is also reflected by the histrogram, as the the garageFLASE has a higher count of receiving high stars(3.5-4.5).
+```
 
-#the restaurants that offer garage parking are towards cheaper restaurants?
-
-#Street
-Restaurants_Parking %>%
-  ggplot(aes(x=stars)) + 
-  geom_density(aes(color=street, fill=street), alpha=.25) + 
-  labs(x="Stars", y="Density", title="Stars vs Street_Parking")
-  
-#same conclusion as the first graph
-
-Restaurants_Parking %>%
-  ggplot(aes(x=Price_Range)) + 
-  geom_density(aes(color=street, fill=street), alpha=.25) + 
-  labs(x="Prices", y="Density", title="Price_Range vs Street_Parking")
-
-
-#lot
+```{r}
+#Lot Parking
 Restaurants_Parking %>%
   ggplot(aes(x=stars)) + 
-  geom_density(aes(color=lot, fill=lot), alpha=.25) + 
-  labs(x="Stars", y="Density", title="Stars vs Lot_Parking")
+  geom_histogram(aes(fill=lot), binwidth = 1, position = "dodge") + 
+  labs(x="Stars", y="Count", title="Stars of Lot_Parking")
 
+#linear regression
+fit2 <- lm(Restaurants_frame$stars~Restaurants_frame$lot)
+summary(fit2)
 
-# many restaurants that earn better reviews do not offer lot parking 
+# In this case, *** indicates that it's unlikely that no relationship exists between stars and the fact that restaurants offering lot parking.
+# The estimate coefficient is 0.068089. It's absolute value is very close to zero, but it might because of the relatively large sample size, since in a larger sample a smaller coefficient may be significant. The positive sign indicates that offering a lot parking has a slight positive impact on the stars. This trend is also reflected by the histrogram, as the the lotTRUE has a higher count of receiving high stars(3.5-4.5).
+```
 
+```{r}
+#Street Parking
 Restaurants_Parking %>%
-  ggplot(aes(x=Price_Range)) + 
-  geom_density(aes(color=lot, fill=lot), alpha=.25) + 
-  labs(x="Prices", y="Density", title="Price_Range vs Lot_Parking")
+  ggplot(aes(x=stars)) + 
+  geom_histogram(aes(fill=street), binwidth = 1, position = "dodge") + 
+  labs(x="Stars", y="Count", title="Stars of Street_Parking")
 
+#linear regression
+fit3 <- lm(Restaurants_frame$stars~Restaurants_frame$street)
+summary(fit3)
 
-# the restaurant that offer lot parking are usually in price range $ and $$
+# From the summary of regression line:
+# In this case of street parking, *** indicates that it's unlikely that no relationship exists between stars and the fact that restaurants offering street parking.
+# The estimated coefficient is 0.237872, which indicates that offering a street parking has a positive impact on the stars.
+```
 
+```{r}
 #valet
 Restaurants_Parking %>%
   ggplot(aes(x=stars)) + 
-  geom_density(aes(color=valet, fill=valet), alpha=.25) + 
-  labs(x="Stars", y="Density", title="Stars vs Valet_Parking")
+  geom_histogram(aes(fill=valet), binwidth = 1, position = "dodge") + 
+  labs(x="Stars", y="Count", title="Stars of Valet_Parking") 
 
-# not significantly influenced by valet parking option
+#linear regression
+fit4 <- lm(Restaurants_frame$stars~Restaurants_frame$valet)
+summary(fit4)
 
-Restaurants_Parking %>%
-  ggplot(aes(x=Price_Range)) + 
-  geom_density(aes(color=valet, fill=valet), alpha=.25) + 
-  labs(x="Prices", y="Density", title="Price_Range vs Valet_Parking")
-  
 
-#restaurants in price range $ or $$ usually not offer valet parking 
+# From the summary of regression line:
+# In this case of street parking, *** indicates that it's unlikely that no relationship exists between stars and the fact that restaurants offering valet parking.
+# The estimated coefficient is 0.096737, which indicates that offering a valet parking has a positive impact on the stars. 
+```
+
+```{r}
+Restaurants_frame1 <- Restaurants_frame %>%
+  select(-business_id, -name, -validated, -Wi_Fi)
+label <- function(x){
+  if(x ==TRUE){
+    return(1)
+  }
+  if(x == FALSE){
+    return(0)
+  }
+}
+
+label_wifi <- function(x){
+  if(x == "free"){
+    return(1)
+  }
+  if(x == "no"){
+    return(0)
+  }
+}
+
+Restaurants_frame1$garage = sapply(Restaurants_frame1$garage,label)
+Restaurants_frame1$street = sapply(Restaurants_frame1$street,label)
+Restaurants_frame1$lot = sapply(Restaurants_frame1$lot,label)
+Restaurants_frame1$valet = sapply(Restaurants_frame1$valet,label)
+Restaurants_frame1$Outdoor_Seating = sapply(Restaurants_frame1$Outdoor_Seating,label)
+
+Restaurants_frame1$Credit_Cards = sapply(Restaurants_frame1$Credit_Cards,label)
+Restaurants_frame1$Wi_Fi = sapply(Restaurants_frame1$Wi_Fi,label_wifi)
+
+M<-cor(Restaurants_frame1)
+head(round(M,2))
+corrplot(M, method = "color")
+
+# question not sure why wifi returns the error "Error in if (x == "free") { : argument is of length zero"
+
+#Positive correlations are displayed in blue and negative correlations in red color. Color intensity is proportional to the correlation coefficients.
+#from the color correlogram, we can see that street parking has relatively highpositive impact on stars
+#in turns of the relationship among different attributes, 
+```
+
+
+Tina's 
+```{r}
+rating_distrib_plot <- Restaurants_frame %>% ggplot(aes(y=stars, x=Credit_Cards))
+rating_distrib_plot + geom_boxplot() +
+  labs(x="Accepts Credit Cards", y="Stars", title="Distribution of Ratings Based on Acceptance of Credit Cards") 
+
+card_by_star <- Restaurants_frame %>%
+  group_by(stars, Credit_Cards) %>%
+  summarise(count = n())
+
+
+Restaurants_frame %>%
+  ggplot(aes(x=stars)) + 
+  geom_histogram(aes(fill=Credit_Cards), binwidth = 0.5, position = "dodge") + 
+  ylim(0,2000) +
+  labs(x="Stars", y="Count", title="Ratings Based on Acceptance of Credit Cards") 
+
+percent_cardtype_by_star_plot <- ggplot(card_by_star, aes(x=stars, y=percent_cardtype, col=Credit_Cards))
+percent_cardtype_by_star_plot + geom_line()
 ```
 
