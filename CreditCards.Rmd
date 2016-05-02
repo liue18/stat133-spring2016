@@ -1,0 +1,90 @@
+---
+title: "Untitled"
+author: ""
+date: ""
+output: 
+  html_document:
+    fig_height: 3
+    fig_width: 5
+---
+<!-- Don't edit in between this line and the one below -->
+```{r include=FALSE}
+# Don't delete this chunk if you are using the DataComputing package
+library(DataComputing)
+library(httr)
+library(jsonlite)
+```
+*Source file* 
+```{r, results='asis', echo=FALSE}
+includeSourceDocuments()
+```
+<!-- Don't edit the material above this line -->
+
+Question: Do restaurants which accept credit cards get better reviews on Yelp?
+
+Cleaning the data:
+```{r include=FALSE}
+dir <- "C:\\Users\\Tina\\Documents\\_School\\stat133\\stat133-spring2016\\"
+businessesmini <- stream_in(file(paste(dir,"businessesmini.json",sep="")))
+businesses <- stream_in(file(paste(dir,"yelp_academic_dataset_business.json",sep="")))
+categories <- businesses$categories
+
+#Make a vector with the unique business id's for all the rows where 'categories' contains 'Bubble Tea' or 'Tea Rooms'
+restaurants <- c()
+for (i in 1:length(categories)) {
+  if (sum(grepl("Restaurants",categories[[i]]) > 0)) {
+    restaurants <- c(restaurants,businesses[i,1])
+  }
+}
+
+#Select the rows in the data frame where the row number is in tearooms
+businessesnarrow <- data.frame(businesses$business_id,businesses$name,businesses$stars,businesses$attributes$"Parking",businesses$attributes$"Wi-Fi",businesses$attributes$"Outdoor Seating",businesses$attributes$"Good For",businesses$attributes$"Accepts Credit Cards",businesses$attributes$"Price Range")
+restaurants_frame <- businessesnarrow %>%
+  filter(businesses.business_id %in% restaurants)
+#Remove strange formatting in names
+names(restaurants_frame) <- c("business_id","name","stars",names(restaurants_frame)[4:8],"Wi_Fi","Outdoor_Seating",names(restaurants_frame)[11:16],"Credit_Cards","Price_Range")
+
+restaurants_frame <- na.omit(restaurants_frame)
+```
+
+#Credit card plots
+
+```{r echo=FALSE}
+means <- aggregate(stars ~ Credit_Cards, restaurants_frame, mean)
+
+rating_distrib_plot <- restaurants_frame %>% ggplot(aes(y=stars, x=Credit_Cards))
+rating_distrib_plot <- rating_distrib_plot + 
+  geom_boxplot() +
+  labs(x="Accepts Credit Cards", title="Rating distrubution for restaurants which accept and do not accept credit card") +
+  stat_summary(fun.y=mean, geom="point") +
+  geom_text(data=means, aes(label=stars, y=stars + .1))
+
+rating_distrib_plot
+lm(restaurants_frame$stars~restaurants_frame$Credit_Cards) 
+```
+correlation between stars and having credit cards: -0.3248
+
+#significance testing
+```{r}
+takesCard <- restaurants_frame %>%
+  filter(Credit_Cards==TRUE)
+takesCardVector<- takesCard$stars
+takesCardSample <- sample(takesCardVector, 450)
+
+notTakeCard <- restaurants_frame %>%
+  filter(Credit_Cards==FALSE)
+notTakeCardVector <- notTakeCard$stars
+notTakeCardSample <- sample(notTakeCardVector, 450)
+
+t.test(takesCardSample, notTakeCardSample, paired=TRUE)
+```
+
+#Histogram of now many restaurants accept credit card and don't
+```{r}
+restaurants_frame %>%
+  ggplot(aes(x=stars)) + 
+  geom_histogram(aes(fill=Credit_Cards), binwidth = .5, position="dodge") + 
+  labs(fill="Accepts Credit Card", x="Stars", y="Count", title="Number of Restaurants which Accept Credit Cards and Not")
+
+```
+
