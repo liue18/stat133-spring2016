@@ -1,0 +1,77 @@
+---
+title: "Bobalites Project"
+author: "Roanna Lin"
+date: "April 20, 2016"
+output: html_document
+---
+
+```{r include=FALSE}
+# Don't delete this chunk if you are using the DataComputing package
+library(DataComputing)
+library(httr)
+library(jsonlite)
+```
+*Source file* 
+```{r, results='asis', echo=FALSE}
+includeSourceDocuments()
+```
+
+```{r}
+dir <- "/Users/roannalin/Documents/Classes/Spring 2016/Stat 133/stat133-spring2016/"
+businessesmini <- stream_in(file(paste(dir,"businessesmini.json",sep="")))
+businesses <- stream_in(file(paste(dir,"yelp_academic_dataset_business.json",sep="")))
+categories <- businesses$categories
+
+#Make a vector with the unique business id's for all the rows where 'categories' contains 'Bubble Tea' or 'Tea Rooms'
+restaurants <- c()
+for (i in 1:length(categories)) {
+  if (sum(grepl("Restaurants",categories[[i]]) > 0)) {
+    restaurants <- c(restaurants,businesses[i,1])
+  }
+}
+
+#Select the rows in the data frame where the row number is in resturants
+businessesnarrow <- data.frame(businesses$business_id,businesses$name,businesses$stars,businesses$attributes$"Parking",businesses$attributes$"Wi-Fi",businesses$attributes$"Outdoor Seating",businesses$attributes$"Good For",businesses$attributes$"Accepts Credit Cards",businesses$attributes$"Price Range",businesses$attributes$"Takes Reservations")
+restaurants_frame <- businessesnarrow %>%
+  filter(businesses.business_id %in% restaurants)
+
+restaurants_frame <- na.omit(restaurants_frame)
+#Remove strange formatting in names
+names(restaurants_frame) <- c("business_id","name","stars",names(restaurants_frame)[4:8],"Wi_Fi","Outdoor_Seating",names(restaurants_frame)[11:16],"Credit_Cards","Price_Range","Takes_Reservations")
+
+#Reservation plots
+
+means <- aggregate(stars ~ Takes_Reservations, restaurants_frame, mean)
+
+rating_distrib_plot <- restaurants_frame %>% ggplot(aes(y=stars, x=Takes_Reservations))
+rating_distrib_plot + geom_boxplot(aes(col=Takes_Reservations, fill= Takes_Reservations), alpha=.25) +
+  labs(x="Takes Reservations", y="Stars", title="Ratings based on ability to take Reservations") +
+  theme(axis.title=element_text(size=rel(2)), plot.title=element_text(size=rel(2)), axis.text=element_text(size=rel(2))) +
+  stat_summary(fun.y=mean, geom="point") +
+  geom_text(data = means, aes(label=stars, y = stars + 0.1))
+
+Reservations <-
+  restaurants_frame %>%
+  filter(Takes_Reservations==TRUE)
+Reservation_vector <- Reservations$stars
+Reservation_sample <- sample(Reservation_vector, 5000)
+
+No_Reservations <-
+  restaurants_frame %>%
+  filter(Takes_Reservations==FALSE)
+No_Reservation_vector <-No_Reservations$stars
+No_Reservation_sample <- sample(No_Reservation_vector, 5000)
+
+t.test(Reservation_sample, No_Reservation_sample, paired=TRUE)
+
+```
+#Mean Rating for Restaurants that don't take reservations: 3.46
+#Mean Rating for Restauratns that do take reservations: 3.63
+#The p-value for the mean rating for restaurants that do and don't take reservations is < 2.2e^-16. Evaluating at a significance level of 0.05, there is statistical difference in rating between restaurants that do and restaurants that don't take reservations. Even though the means are similar, the sample size is so big that the difference in means is significant.
+``` {r}
+ggplot(restaurants_frame, aes(x=stars, fill=Takes_Reservations), binwidth=0.5, position = "dodge") +
+  geom_histogram() +
+  labs(x="Number of Restaurants", y="Stars", title="Number of Restaurants at each Rating") +
+  theme(axis.title=element_text(size=rel(2)), plot.title=element_text(size=rel(2)), axis.text=element_text(size=rel(2)))
+```
+#This shows the proportion of restaurants that do take reservations increases as rating increases. 
