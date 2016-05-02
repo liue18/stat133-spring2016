@@ -35,12 +35,12 @@ for (i in 1:length(categories)) {
 }
 
 #Select the rows in the data frame where the row number is in Restaurants
-businessesnarrow <- data.frame(businesses$business_id,businesses$name,businesses$stars,businesses$attributes$"Parking",businesses$attributes$"Wi-Fi",businesses$attributes$"Outdoor Seating",businesses$attributes$"Good For",businesses$attributes$"Accepts Credit Cards",businesses$attributes$"Price Range")
+businessesnarrow <- data.frame(businesses$business_id,businesses$name,businesses$stars,businesses$attributes$"Parking",businesses$attributes$"Takes Reservations",businesses$attributes$"Outdoor Seating",businesses$attributes$"Accepts Credit Cards",businesses$attributes$"Price Range")
 Restaurants_frame <- businessesnarrow %>%
   filter(businesses.business_id %in% Restaurants) 
 
 #Remove strange formatting in names
-names(Restaurants_frame) <- c("business_id","name","stars",names(Restaurants_frame)[4:8],"Wi_Fi","Outdoor_Seating",names(Restaurants_frame)[11:16],"Credit_Cards","Price_Range")
+names(Restaurants_frame) <- c("business_id","name","stars",names(Restaurants_frame)[4:8],"Takes_Reservations","Outdoor_Seating","Credit_Cards","Price_Range")
 
 # change Price_Range from 1,2,3,4 to $,$$,$$$,$$$$
 Restaurants_frame = na.omit(Restaurants_frame)
@@ -81,6 +81,8 @@ Restaurants_Parking %>%
   geom_histogram(aes(fill=garage), binwidth = 1, position = "dodge") + 
   labs(x="Stars", y="Count", title="Stars of Garage_Parking")
 
+#Take away: many 3-4 stars restaurants don't offer garage parking
+
 #linear regression: estimate p-value(significant level) and estimated coefficient
 fit1 <- lm(Restaurants_frame$stars~Restaurants_frame$garage)
 summary(fit1)
@@ -97,6 +99,8 @@ Restaurants_Parking %>%
   geom_histogram(aes(fill=lot), binwidth = 1, position = "dodge") + 
   labs(x="Stars", y="Count", title="Stars of Lot_Parking")
 
+#Take Away: most 3-4 stars restaurants offer lot parking
+
 #linear regression
 fit2 <- lm(Restaurants_frame$stars~Restaurants_frame$lot)
 summary(fit2)
@@ -111,6 +115,8 @@ Restaurants_Parking %>%
   ggplot(aes(x=stars)) + 
   geom_histogram(aes(fill=street), binwidth = 1, position = "dodge") + 
   labs(x="Stars", y="Count", title="Stars of Street_Parking")
+
+#Take Ways: most 3-4 star places don’t have vallet parking, but more 4 star restaurants offer street parking than 3 star restaurants.
 
 #linear regression
 fit3 <- lm(Restaurants_frame$stars~Restaurants_frame$street)
@@ -128,6 +134,8 @@ Restaurants_Parking %>%
   geom_histogram(aes(fill=valet), binwidth = 1, position = "dodge") + 
   labs(x="Stars", y="Count", title="Stars of Valet_Parking") 
 
+#Take Ways: most 3-4 star places don’t have vallet parking
+
 #linear regression
 fit4 <- lm(Restaurants_frame$stars~Restaurants_frame$valet)
 summary(fit4)
@@ -135,12 +143,13 @@ summary(fit4)
 
 # From the summary of regression line:
 # In this case of street parking, *** indicates that it's unlikely that no relationship exists between stars and the fact that restaurants offering valet parking.
-# The estimated coefficient is 0.096737, which indicates that offering a valet parking has a positive impact on the stars. 
+# The estimated coefficient is 0.096737, which indicates that offering a valet parking has a slight positive impact on the stars. 
+
 ```
 
 ```{r}
 Restaurants_frame1 <- Restaurants_frame %>%
-  select(-business_id, -name, -validated, -Wi_Fi)
+  select(-business_id, -name, -validated)
 label <- function(x){
   if(x ==TRUE){
     return(1)
@@ -150,35 +159,29 @@ label <- function(x){
   }
 }
 
-label_wifi <- function(x){
-  if(x == "free"){
-    return(1)
-  }
-  if(x == "no"){
-    return(0)
-  }
-}
 
 Restaurants_frame1$garage = sapply(Restaurants_frame1$garage,label)
 Restaurants_frame1$street = sapply(Restaurants_frame1$street,label)
 Restaurants_frame1$lot = sapply(Restaurants_frame1$lot,label)
 Restaurants_frame1$valet = sapply(Restaurants_frame1$valet,label)
 Restaurants_frame1$Outdoor_Seating = sapply(Restaurants_frame1$Outdoor_Seating,label)
-
+Restaurants_frame1$Takes_Reservations = sapply(Restaurants_frame1$Takes_Reservations,label)
 Restaurants_frame1$Credit_Cards = sapply(Restaurants_frame1$Credit_Cards,label)
-Restaurants_frame1$Wi_Fi = sapply(Restaurants_frame1$Wi_Fi,label_wifi)
 
 M<-cor(Restaurants_frame1)
 head(round(M,2))
 corrplot(M, method = "color")
 
-# question not sure why wifi returns the error "Error in if (x == "free") { : argument is of length zero"
-
 #Positive correlations are displayed in blue and negative correlations in red color. Color intensity is proportional to the correlation coefficients.
-#from the color correlogram, we can see that street parking has relatively highpositive impact on stars
-#in turns of the relationship among different attributes, 
+#from the color correlogram, we can see that street parking and taking reservation have slight positive impact on stars, while accepting credit cards have slight negative impact on stars.
 ```
 
+```{r}
+# Multiple linear regression to see which factor has most impact on stars
+lm(formula = Restaurants_frame$stars ~ Restaurants_frame$garage + Restaurants_frame$street + Restaurants_frame$lot + Restaurants_frame$valet + Restaurants_frame$Outdoor_Seating + Restaurants_frame$Credit_Cards + Restaurants_frame$Price_Range)
+
+# From the correlation coefficient, offering street parking has the most positive impact on stars (0.27938), while accepting credit cards have most negative impact on stars (-0.38742). 
+```
 
 Tina's 
 ```{r}
